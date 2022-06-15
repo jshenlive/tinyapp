@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 
-const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true}));
+const bodyParser = require("body-parser");      //require npm install body-parser --save
+const cookieParser = require('cookie-parser'); //require npm install cookie-parser --save
 
 //setting ejs as template engine for Express.app
 app.set("view engine", "ejs");
@@ -13,9 +13,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-//routes
+//
+// Middleware
+//
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
+
+//
+// Routes
+//
+
+// Home page
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/urls");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -27,16 +37,24 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase};
+  const templateVars = { 
+    username: req.cookies['username'],
+    urls: urlDatabase
+  };
   res.render("urls_index",templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { 
+    username: req.cookies['username'],
+  };
+  res.render("urls_new",templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL],
+    username: req.cookies['username']
+   };
   res.render("urls_show", templateVars);
 });
 
@@ -53,24 +71,30 @@ app.post("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL] = 'http://' + req.body.longURL;
 })
 
+// Post for adding new urls
 app.post("/urls", (req, res) => {  
-  // console.log(req.body);  // Log the POST request body to the console
   let shortUrl = generateRandomString();
   urlDatabase[shortUrl] = 'http://' + req.body.longURL;
-
-  // console.log(urlDatabase);
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
-  // setTimeout(res.redirect("/urls"),1500);
-  // res.redirect("/urls");
+  res.redirect("/urls");
 });
 
+// Post for delete button redirects the page to /urls
 app.post("/urls/:shortURL/delete", (req,res)=>{
-  
-  // console.log(req.params.shortURL);
   delete urlDatabase[req.params.shortURL];
+  res.redirect("/urls");  
+})
+
+// Post for login
+app.post("/login", (req,res)=>{
+  res.cookie("username", req.body.username);
   res.redirect("/urls");
-  // console.log(urlDatabase);
-  
+});
+
+// Post for logout
+app.post("/logout", (req,res)=>{
+
+  res.clearCookie("username");
+  res.redirect("/");
 })
 
 app.listen(PORT, () => {
