@@ -3,7 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 
 const bodyParser = require("body-parser");      //require npm install body-parser --save
-const cookieParser = require('cookie-parser'); //require npm install cookie-parser --save
+const cookieSession = require('cookie-session'); //require npm install cookie-session --save
 const bcrypt = require('bcryptjs');
 
 //setting ejs as template engine for Express.app
@@ -36,7 +36,11 @@ const users = {
 // Middleware
 //
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: "tiny",
+  keys: ["urlapps"],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 //
 // Routes
@@ -56,7 +60,7 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies['user_id']];
+  const user = users[req.session.user_id];
   let userData = {};
 
   //if user logged in then filter out URLs created by user
@@ -71,10 +75,10 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  if (users[req.cookies['user_id']]) {
+  if (users[req.session.user_id]) {
 
     const templateVars = {
-      user: users[req.cookies['user_id']],
+      user: users[req.session.user_id],
     };
     res.render("urls_new", templateVars);
   } else {
@@ -86,7 +90,7 @@ app.get("/urls/:shortURL", (req, res) => {
   // console.log(req.params.shortURL);
   const templateVars = {
     shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL,
-    user: users[req.cookies['user_id']],
+    user: users[req.session.user_id],
   };
   res.render("urls_show", templateVars);
 });
@@ -103,7 +107,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get("/register", (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[req.session.user_id],
   };
   res.render("user-registration", templateVars)
   // res.render("user-registration")
@@ -112,16 +116,14 @@ app.get("/register", (req, res) => {
 // Login page
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[req.session.user_id],
   };
   res.render("user-login", templateVars);
   // res.render("user-login");
 })
 
 app.get("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  // console.log(users);
-  // res.clearCookie("username");
+  req.session.user_id = null;
   res.redirect("/");
 })
 
@@ -131,28 +133,28 @@ app.get("/logout", (req, res) => {
 
 // Post for adding new urls
 app.post("/urls", (req, res) => {
-  const userID = users[req.cookies['user_id']];
+  const userID = users[req.session.user_id];
   if (userID) {
     let shortUrl = generateRandomString();
     urlDatabase[shortUrl] = {};
     urlDatabase[shortUrl].longURL = 'http://' + req.body.longURL;
     urlDatabase[shortUrl].userID = userID.id;
     res.redirect("/urls");
-   } else {
+  } else {
     return res.status(403).send('Please Login first');
   }
 });
 
 // Post for edits
 app.post("/urls/:shortURL", (req, res) => {
-  const user = users[req.cookies['user_id']];
+  const user = users[req.session.user_id];
   const urlData = urlDatabase[req.params.shortURL];
 
-  if (user) {    
-    if(urlData.userID === user.id){
-    urlData.longURL = 'http://' + req.body.longURL;
-    res.redirect("/urls");
-    }else{
+  if (user) {
+    if (urlData.userID === user.id) {
+      urlData.longURL = 'http://' + req.body.longURL;
+      res.redirect("/urls");
+    } else {
       res.status(403).send("Wrong credentials: This url does not belong to you.")
     }
   } else {
@@ -162,13 +164,13 @@ app.post("/urls/:shortURL", (req, res) => {
 
 // Post for delete button redirects the page to /urls
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = users[req.cookies['user_id']];
+  const user = users[req.session.user_id];
 
-  if (user) {    
-    if(urlDatabase[req.params.shortURL].userID === user.id){
+  if (user) {
+    if (urlDatabase[req.params.shortURL].userID === user.id) {
       delete urlDatabase[req.params.shortURL];
       res.redirect("/urls");
-    }else{
+    } else {
       res.send("Wrong credentials: This url does not belong to you.")
     }
   } else {
@@ -183,11 +185,11 @@ app.post("/login", (req, res) => {
   if (!user) {
     return res.status(403).send('No user with that Email found');
   } else {
- 
-    if (!bcrypt.compareSync(req.body.password,user.password)) {
+
+    if (!bcrypt.compareSync(req.body.password, user.password)) {
       return res.status(403).send('Password does not match');
     } else {
-      res.cookie("user_id", user.id);
+      req.session.user_id = user.id;
       res.redirect("/urls");
     }
   }
@@ -196,9 +198,8 @@ app.post("/login", (req, res) => {
 
 // Post for logout
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  // console.log(users);
-  // res.clearCookie("username");
+  req.session.user_id = null;
+
   res.redirect("/");
 })
 
@@ -212,13 +213,13 @@ app.post("/register", (req, res) => {
     const newID = generateRandomString();
     const newEmail = req.body.email;
     const password = req.body.password;
-    const hashedPassword = bcrypt.hashSync(password,10);
+    const hashedPassword = bcrypt.hashSync(password, 10);
     users[newID] = {};
     const newUser = users[newID];
     newUser.id = newID;
     newUser.email = newEmail;
     newUser.password = hashedPassword;
-    res.cookie("user_id", newUser.id);
+    req.session.user_id = newUser.id;
     res.redirect("/urls");
     // console.log("success");
     // console.log(users);
