@@ -1,10 +1,13 @@
 const express = require("express");
-const app = express();
-const PORT = 8080; // default port 8080
-
 const bodyParser = require("body-parser");      //require npm install body-parser --save
 const cookieSession = require('cookie-session'); //require npm install cookie-session --save
 const bcrypt = require('bcryptjs');
+const { generateRandomString, getUserByEmail, urlsForUser } = require("./helpers");
+
+const app = express();
+const PORT = 8080; // default port 8080
+
+
 
 //setting ejs as template engine for Express.app
 app.set("view engine", "ejs");
@@ -65,7 +68,7 @@ app.get("/urls", (req, res) => {
 
   //if user logged in then filter out URLs created by user
   if (user) {
-    userData = urlsForUser(user.id);
+    userData = urlsForUser(user.id, urlDatabase);
   }
   const templateVars = {
     user: user,
@@ -181,7 +184,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // Post for login
 app.post("/login", (req, res) => {
-  const user = emailFound(req.body.email, users);
+  const user = getUserByEmail(req.body.email, users);
   if (!user) {
     return res.status(403).send('No user with that Email found');
   } else {
@@ -199,16 +202,15 @@ app.post("/login", (req, res) => {
 // Post for logout
 app.post("/logout", (req, res) => {
   req.session.user_id = null;
-
   res.redirect("/");
 })
 
 // Post for register
 app.post("/register", (req, res) => {
-  if (req.body.email === '' || req.body.password === '' || emailFound(req.body.email, users)) {
-    res.statusCode = 400;
-    // console.log("failed");
-
+  if (req.body.email === '' || req.body.password === '') {
+    res.status(400).send('Input fields cannot be empty');
+  } else if (getUserByEmail(req.body.email, users)) {
+    res.status(400).send('Email account already exist');
   } else {
     const newID = generateRandomString();
     const newEmail = req.body.email;
@@ -230,32 +232,3 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-const generateRandomString = () => {
-  const len = 6;
-  const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-
-  let result = '';
-  for (let i = 0; i < len; i++) {
-    result += values[Math.floor(Math.random() * values.length)];
-  }
-  return result;
-}
-
-const emailFound = (email, users) => {
-  for (const acc in users) {
-    if (users[acc].email === email) {
-      return users[acc];
-    }
-  }
-  return false;
-}
-
-const urlsForUser = (id) => {
-  const userData = {}
-  for (const url in urlDatabase) {
-    if (urlDatabase[url].userID === id) {
-      userData[url] = urlDatabase[url];
-    }
-  }
-  return userData;
-}
