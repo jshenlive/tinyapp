@@ -55,9 +55,16 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  const user = users[req.cookies['user_id']];
+  let userData = {};
+
+  //if user logged in then filter out URLs created by user
+  if (user) {
+    userData = urlsForUser(user.id);
+  }
   const templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: urlDatabase
+    user: user,
+    urls: userData
   };
   res.render("urls_index", templateVars);
 });
@@ -130,28 +137,43 @@ app.post("/urls", (req, res) => {
     urlDatabase[shortUrl].longURL = 'http://' + req.body.longURL;
     urlDatabase[shortUrl].userID = userID.id;
     res.redirect("/urls");
-    console.log(urlDatabase);
-  } else {
+   } else {
     return res.status(403).send('Please Login first');
   }
 });
 
+// Post for edits
 app.post("/urls/:shortURL", (req, res) => {
-  console.log("i am here");
-  console.log(users[req.cookies['user_id']]);
-  if (users[req.cookies['user_id']]) {
-    urlDatabase[req.params.shortURL].longURL = 'http://' + req.body.longURL;
+  const user = users[req.cookies['user_id']];
+  const urlData = urlDatabase[req.params.shortURL];
+
+  if (user) {    
+    if(urlData.userID === user.id){
+    urlData.longURL = 'http://' + req.body.longURL;
     res.redirect("/urls");
+    }else{
+      res.status(403).send("Wrong credentials: This url does not belong to you.")
+    }
   } else {
-    res.redirect("/login");
+    res.status(403).send("Wrong credentials: Please login first.");
   }
 })
 
 // Post for delete button redirects the page to /urls
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  // console.log(urlDatabase);
-  res.redirect("/urls");
+  const user = users[req.cookies['user_id']];
+
+  if (user) {    
+    if(urlDatabase[req.params.shortURL].userID === user.id){
+      delete urlDatabase[req.params.shortURL];
+      res.redirect("/urls");
+    }else{
+      res.send("Wrong credentials: This url does not belong to you.")
+    }
+  } else {
+    res.status(403).send("Wrong credentials: Please login first.");
+  }
+
 })
 
 // Post for login
@@ -222,4 +244,14 @@ const emailFound = (email, users) => {
     }
   }
   return false;
+}
+
+const urlsForUser = (id) => {
+  const userData = {}
+  for (const url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      userData[url] = urlDatabase[url];
+    }
+  }
+  return userData;
 }
