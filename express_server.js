@@ -4,6 +4,7 @@ const PORT = 8080; // default port 8080
 
 const bodyParser = require("body-parser");      //require npm install body-parser --save
 const cookieParser = require('cookie-parser'); //require npm install cookie-parser --save
+const bcrypt = require('bcryptjs');
 
 //setting ejs as template engine for Express.app
 app.set("view engine", "ejs");
@@ -182,7 +183,8 @@ app.post("/login", (req, res) => {
   if (!user) {
     return res.status(403).send('No user with that Email found');
   } else {
-    if (user.password !== req.body.password) {
+ 
+    if (!bcrypt.compareSync(req.body.password,user.password)) {
       return res.status(403).send('Password does not match');
     } else {
       res.cookie("user_id", user.id);
@@ -209,12 +211,13 @@ app.post("/register", (req, res) => {
   } else {
     const newID = generateRandomString();
     const newEmail = req.body.email;
-    const newPassword = req.body.password;
+    const password = req.body.password;
+    const hashedPassword = bcrypt.hashSync(password,10);
     users[newID] = {};
     const newUser = users[newID];
     newUser.id = newID;
     newUser.email = newEmail;
-    newUser.password = newPassword;
+    newUser.password = hashedPassword;
     res.cookie("user_id", newUser.id);
     res.redirect("/urls");
     // console.log("success");
