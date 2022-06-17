@@ -4,18 +4,26 @@
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+       <% if(user){ %>
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
+      <% } %>   
 
           <div class="navbar-nav" style="margin-left: auto; margin-right:0;">
-            <a class="nav-item nav-link" href="/register">Register</a>
-
             <% if(!user){ %>
+            <a class="nav-item nav-link" href="/register">Register</a>
             <a class="nav-item nav-link" href="/login">Login</a>
             <% } else{ %>
-              <a class="nav-item nav-link" href="/logout">Logout</a>
+              <span class="navbar"><b>Logged In As: <%= user.email %></b></span>
+              <form class="navbar" method="POST" action="/logout">
+                <button class="navbar" style = "background-color: #136b1200; 
+                border-radius: 12px;
+                color: #031217; 
+                border: 2px solid #070f11; padding:10px;">Logout</button>
+              </form>
+              
             <% } %>   
           </div>
 

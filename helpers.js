@@ -8,7 +8,7 @@ const generateRandomString = () => {
     result += values[Math.floor(Math.random() * values.length)];
   }
   return result;
-}
+};
 
 const getUserByEmail = (email, users) => {
   for (const acc in users) {
@@ -16,17 +16,17 @@ const getUserByEmail = (email, users) => {
       return users[acc];
     }
   }
-  return false;
-}
+  return undefined;
+};
 
 const urlsForUser = (id, urls) => {
-  const userData = {}
+  const userData = {};
   for (const url in urls) {
     if (urls[url].userID === id) {
       userData[url] = urls[url];
     }
   }
   return userData;
-}
+};
 
-module.exports= {generateRandomString,getUserByEmail,urlsForUser};
+module.exports = { generateRandomString, getUserByEmail, urlsForUser };
