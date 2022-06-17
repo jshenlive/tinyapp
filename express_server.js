@@ -136,9 +136,9 @@ app.post("/urls", (req, res) => {
 });
 
 // Post for edits
-app.post("/urls/:shortURL", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   const user = users[req.session.userId];
-  const urlData = urlDatabase[req.params.shortURL];
+  const urlData = urlDatabase[req.params.id];
 
   if (user) {
     if (urlData.userID === user.id) {
@@ -152,13 +152,11 @@ app.post("/urls/:shortURL", (req, res) => {
   }
 });
 
-// Post for delete button redirects the page to /urls
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.delete("/urls/:id", (req,res)=>{
   const user = users[req.session.userId];
-
   if (user) {
-    if (urlDatabase[req.params.shortURL].userID === user.id) {
-      delete urlDatabase[req.params.shortURL];
+    if (urlDatabase[req.params.id].userID === user.id) {
+      delete urlDatabase[req.params.id];
       res.redirect("/urls");
     } else {
       res.send("Wrong credentials: This url does not belong to you.");
@@ -166,7 +164,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   } else {
     res.status(403).send("Wrong credentials: Please login first.");
   }
-});
+})
 
 // Post for login
 app.post("/login", (req, res) => {

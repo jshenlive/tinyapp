@@ -14,7 +14,7 @@
         <h5 class="card-title">TinyURL for: <%= longURL %></h5>
         <p class="card-text">Short URL: <%= shortURL %></a></p>
       </div>
-      <form class="form-inline" action="/urls/<%= shortURL %>" method="POST">
+      <form class="form-inline" action="/urls/<%= shortURL %>?_method=PUT" method="POST">
       <div  class="card-body" style = "color: #424242; background-color: #f5f5f5">
         <h3 class="card-title">Edit</h3>        
         <p class="form-group offset-4">
