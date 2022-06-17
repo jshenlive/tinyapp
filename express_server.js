@@ -3,11 +3,10 @@ const bodyParser = require("body-parser");      //require npm install body-parse
 const cookieSession = require('cookie-session'); //require npm install cookie-session --save
 const bcrypt = require('bcryptjs');
 const { generateRandomString, getUserByEmail, urlsForUser } = require("./helpers");
+const methodOverride = require('method-override');
 
 const app = express();
 const PORT = 8080; // default port 8080
-
-
 
 //setting ejs as template engine for Express.app
 app.set("view engine", "ejs");
@@ -27,6 +26,7 @@ app.use(cookieSession({
   keys: ["urlapps"],
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
+app.use(methodOverride('_method'));
 
 //
 // Routes
