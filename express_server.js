@@ -129,7 +129,7 @@ app.post("/urls", (req, res) => {
     urlDatabase[shortUrl] = {};
     urlDatabase[shortUrl].longURL = 'http://' + req.body.longURL;
     urlDatabase[shortUrl].userID = userID.id;
-    res.redirect("/urls");
+    res.redirect(`/urls/${shortUrl}`);
   } else {
     return res.status(403).send('Please Login first');
   }
